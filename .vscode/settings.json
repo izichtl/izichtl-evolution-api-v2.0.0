@@ -12,5 +12,10 @@
   "prisma-smart-formatter.prisma.defaultFormatter": "Prisma.prisma",
   "i18n-ally.localesPaths": [
     "store/messages"
-  ]
+  ],
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#3F290F",
+    "titleBar.activeBackground": "#593915",
+    "titleBar.activeForeground": "#FDFBF8"
+  }
 }
