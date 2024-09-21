@@ -14,6 +14,7 @@ export class DifyService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
+    private readonly mediaDisable: undefined | string = process.env.DIFY_MEDIA_AS_LINKS_ENABLE,
   ) {}
 
   private readonly logger = new Logger('DifyService');
@@ -40,8 +41,22 @@ export class DifyService {
     }
   }
 
+  private isMediaDisabled() {
+    if (this.mediaDisable === 'true') {
+      return false;
+    }
+  }
+
   private isImageMessage(content: string) {
     return content.includes('imageMessage');
+  }
+
+  private isAudioMessage(content: string) {
+    return content.includes('audioMessage');
+  }
+
+  private isVideoMessage(content: string) {
+    return content.includes('videoMessage');
   }
 
   private isJSON(str: string): boolean {
@@ -203,14 +218,44 @@ export class DifyService {
 
         if (this.isImageMessage(content)) {
           const contentSplit = content.split('|');
+          if (this.isMediaDisabled()) {
+            payload.files = [
+              {
+                type: 'image',
+                transfer_method: 'remote_url',
+                url: contentSplit[1].split('?')[0],
+              },
+            ];
+          }
 
-          payload.files = [
-            {
-              type: 'image',
-              transfer_method: 'remote_url',
-              url: contentSplit[1].split('?')[0],
-            },
-          ];
+          payload.query = contentSplit[2] || content;
+        }
+        if (this.isAudioMessage(content)) {
+          const contentSplit = content.split('|');
+          if (this.isMediaDisabled()) {
+            payload.files = [
+              {
+                type: 'audio',
+                transfer_method: 'remote_url',
+                url: contentSplit[1].split('?')[0],
+              },
+            ];
+          }
+
+          payload.query = contentSplit[2] || content;
+        }
+
+        if (this.isVideoMessage(content)) {
+          const contentSplit = content.split('|');
+          if (this.isMediaDisabled()) {
+            payload.files = [
+              {
+                type: 'video',
+                transfer_method: 'remote_url',
+                url: contentSplit[1].split('?')[0],
+              },
+            ];
+          }
           payload.query = contentSplit[2] || content;
         }
 
@@ -238,14 +283,14 @@ export class DifyService {
           if (data.trim() === '' || !data.startsWith('{')) {
             return;
           }
-  
+
           try {
             const events = data.split('\n').filter((line) => line.trim() !== '');
-  
+
             for (const eventString of events) {
               if (eventString.trim().startsWith('{')) {
                 const event = JSON.parse(eventString);
-  
+
                 if (event?.event === 'agent_message') {
                   console.log('event:', event);
                   conversationId = conversationId ?? event?.conversation_id;
